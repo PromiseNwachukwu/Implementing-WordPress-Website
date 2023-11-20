@@ -44,6 +44,69 @@ Run sudo lvmdiskscan command to check for available partitions.
 ![Screenshot from 2023-11-20 23-25-03](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/a23dd50d-8d5b-4930-ae18-24f818ef8e41)
 
 9. Use vgcreate utility to add all 3 PVs to a volume group (VG). Name the VG webdata-vg 
-  sudo vgcreate webdata-vg /dev/xvdh1 /dev/xvdg1 /dev/xvdf1
-10. Verify that your VG has been created successfully by running sudo vgs 
+    sudo vgcreate webdata-vg /dev/xvdh1 /dev/xvdg1 /dev/xvdf1
+![Screenshot from 2023-11-20 23-28-30](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/02677547-8c2d-4bd5-a88b-b5c8e0231bff)
 
+10. Verify that your VG has been created successfully by running sudo vgs 
+![Screenshot from 2023-11-20 23-29-45](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/d4175a98-77ca-4887-9bb8-377ce14097ca)
+
+11. Use lvcreate utility to create 2 logical volumes. apps-lv (Use half of the PV size), and logs-lv Use the remaining space of the PV size. NOTE: apps-lv will be used to store data for the Website while, logs-lv will be used to store data for logs. 
+  sudo lvcreate -n apps-lv -L 14G webdata-vg
+  sudo lvcreate -n logs-lv -L 14G webdata-vg
+![Screenshot from 2023-11-20 23-39-47](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/c650f301-1bb5-4770-b493-dddb26c7b994)
+
+12. Verify that your Logical Volume has been created successfully by running sudo lvs.
+![Screenshot from 2023-11-20 23-41-16](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/bc947e05-d0cb-4cbe-b906-da0155209b06)
+
+13. Verify the entire setup 
+  sudo vgdisplay -v #view complete setup - VG, PV, and LV
+  sudo lsblk 
+![Screenshot from 2023-11-20 23-45-40](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/ab7f47c6-3283-4a29-a088-d589f7d180c0)
+
+14. Use mkfs.ext4 to format the logical volumes with ext4 filesystem 
+  sudo mkfs -t ext4 /dev/webdata-vg/apps-lv
+  sudo mkfs -t ext4 /dev/webdata-vg/logs-lv
+![Screenshot from 2023-11-20 23-49-14](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/577d8183-b3f9-45e8-9b9f-f8f04c910fc1)
+
+15. Create /var/www/html directory to store website files
+    sudo mkdir -p /var/www/html
+![Screenshot from 2023-11-20 23-51-01](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/af52e1c1-d19a-4ad9-bf4c-dae8b809d90d)
+
+17. Create /home/recovery/logs to store backup of log data
+    sudo mkdir -p /home/recovery/logs
+![Screenshot from 2023-11-20 23-53-24](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/7589a9d7-e25c-4b3c-9570-c61f0fcc36e2)
+
+17. Mount /var/www/html on apps-lv logical volume
+    sudo mount /dev/webdata-vg/apps-lv /var/www/html/
+![Screenshot from 2023-11-20 23-54-46](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/e29b362b-4a95-4f01-9324-ed601e6a0de9)
+
+18. Use rsync utility to backup all the files in the log directory /var/log into /home/recovery/logs (This is required before mounting the file system) 
+    sudo rsync -av /var/log/. /home/recovery/logs/
+![Screenshot from 2023-11-20 23-56-20](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/d3363e2a-6746-4c50-901f-d0fc90dccb1d)
+
+19. Mount /var/log on logs-lv logical volume. (Note that all the existing data on /var/log will be deleted. That is why step 15 above is very important) 
+    sudo mount /dev/webdata-vg/logs-lv /var/log
+![Screenshot from 2023-11-20 23-57-52](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/d1f5ed27-fd96-4a3c-ad94-fe16aa02fe59)
+
+20. Restore log files back into /var/log directory 
+    sudo rsync -av /home/recovery/logs/log/. /var/log
+![Screenshot from 2023-11-21 00-00-48](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/5cfffed3-6c15-46e7-a6a7-56135947b8fc)
+
+21. Update /etc/fstab file so that the mount configuration will persist after restart of the server. 
+The UUID of the device will be used to update the /etc/fstab file;
+    sudo blkid
+![Screenshot from 2023-11-21 00-03-03](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/8e5238ba-d6ce-4bf2-b7b6-1228eb8c81e0)
+
+sudo vi /etc/fstab
+Update /etc/fstab in this format using your own UUID and rememeber to remove the leading and ending quotes.
+![Screenshot from 2023-11-21 00-20-00](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/3d087218-9803-4780-990b-5750ead19e0d)
+
+22. Test the configuration and reload the daemon
+    sudo mount -a
+    sudo systemctl daemon-reload
+![Screenshot from 2023-11-21 00-23-59](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/da50292b-237b-4fba-9dc6-a8c26f715e1d)
+
+23. Verify your setup by running df -h, output must look like this:
+![Screenshot from 2023-11-21 00-26-05](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/b49f4328-bbab-42a8-aded-ddc5fed4662f)
+
+# Installing wordpress and configuring to use MySQL Database
