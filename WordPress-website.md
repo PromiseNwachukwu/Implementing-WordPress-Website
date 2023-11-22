@@ -106,7 +106,44 @@ Update /etc/fstab in this format using your own UUID and rememeber to remove the
     sudo systemctl daemon-reload
 ![Screenshot from 2023-11-21 00-23-59](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/da50292b-237b-4fba-9dc6-a8c26f715e1d)
 
-23. Verify your setup by running df -h, output must look like this:
+
+
+24. Verify your setup by running df -h, output must look like this:
 ![Screenshot from 2023-11-21 00-26-05](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/b49f4328-bbab-42a8-aded-ddc5fed4662f)
 
 # Installing wordpress and configuring to use MySQL Database
+Step 2 — Prepare the Database Server
+Launch a second RedHat EC2 instance that will have a role - 'DB Server' Repeat the same steps as for the Web Server, but instead of apps-lv create db-lv and mount it to /db directory instead of /var/www/html/.
+Step 3 — Install Wordpress on your Web Server EC2
+    1. Update the repository
+       sudo yum -y update
+![Screenshot from 2023-11-22 23-16-31](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/7f176a75-70a4-4e6b-b0ec-fd7f9952a2ec)
+
+Use lvcreate utility to create 2 logical volumes. apps-lv (Use half of the PV size), and logs-lv Use the remaining space of the PV size. NOTE: apps-lv will be used to store data for the Website while, logs-lv will be used to store data for logs. 
+sudo lvcreate -n db-lv -L 14G webdata-vg
+sudo lvcreate -n logs-lv -L 14G webdata-vg
+![Screenshot from 2023-11-23 00-20-55](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/cbf4f498-78fc-4144-87a6-dfef4546f4eb)
+
+Verify that your Logical Volume has been created successfully by running sudo lvs
+![Screenshot from 2023-11-23 00-35-11](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/50d7c595-5ad2-49e4-a98a-ae1223eceb94)
+
+Verify the entire setup 
+sudo vgdisplay -v #view complete setup - VG, PV, and LV
+sudo lsblk
+![Screenshot from 2023-11-23 00-39-17](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/b07062a8-5911-4dda-9bbb-2167ef38f041)
+
+Use mkfs.ext4 to format the logical volumes with ext4 filesystem 
+sudo mkfs -t ext4 /dev/webdata-vg/db-lv
+sudo mkfs -t ext4 /dev/webdata-vg/logs-lv
+![Screenshot from 2023-11-23 00-42-18](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/36a77227-0222-4c62-97dc-0a06f079e371)
+
+Create /db directory to store database files
+  sudo mkdir -p /db
+
+Create /home/recovery/logs to store backup of log data
+sudo mkdir -p /home/recovery/logs
+![Screenshot from 2023-11-23 00-53-29](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/2c254e4b-add8-445e-a923-69899d8fd6b7)
+
+    2. Install wget, Apache and it's dependencies
+       sudo yum -y install wget httpd php php-mysqlnd php-fpm php-json
+    3. Start Apache
