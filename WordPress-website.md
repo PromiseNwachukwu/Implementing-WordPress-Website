@@ -1,6 +1,6 @@
 # Web Solution With WordPress
 ## Implementing LVM on Linux servers (Web and Database servers)
-### Step 1 — Prepare a Web Server
+## Step 1 — Prepare a Web Server
 ![Screenshot from 2023-11-19 22-26-04](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/8c021158-fbdc-4438-bbec-812f1038776a)
 
 1. Launch an EC2 instance that will serve as "Web Server". Create 3 volumes in the same AZ as your Web Server EC2, each of 10 GiB.
@@ -112,7 +112,7 @@ Update /etc/fstab in this format using your own UUID and rememeber to remove the
 ![Screenshot from 2023-11-21 00-26-05](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/b49f4328-bbab-42a8-aded-ddc5fed4662f)
 
 # Installing wordpress and configuring to use MySQL Database
-Step 2 — Prepare the Database Server
+## Step 2 — Prepare the Database Server
 Launch a second RedHat EC2 instance that will have a role - 'DB Server' Repeat the same steps as for the Web Server, but instead of apps-lv create db-lv and mount it to /db directory instead of /var/www/html/.
 Step 3 — Install Wordpress on your Web Server EC2
     1. Update the repository
@@ -120,30 +120,127 @@ Step 3 — Install Wordpress on your Web Server EC2
 ![Screenshot from 2023-11-22 23-16-31](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/7f176a75-70a4-4e6b-b0ec-fd7f9952a2ec)
 
 Use lvcreate utility to create 2 logical volumes. apps-lv (Use half of the PV size), and logs-lv Use the remaining space of the PV size. NOTE: apps-lv will be used to store data for the Website while, logs-lv will be used to store data for logs. 
-sudo lvcreate -n db-lv -L 14G webdata-vg
-sudo lvcreate -n logs-lv -L 14G webdata-vg
+     sudo lvcreate -n db-lv -L 14G webdata-vg
+     sudo lvcreate -n logs-lv -L 14G webdata-vg
 ![Screenshot from 2023-11-23 00-20-55](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/cbf4f498-78fc-4144-87a6-dfef4546f4eb)
 
 Verify that your Logical Volume has been created successfully by running sudo lvs
 ![Screenshot from 2023-11-23 00-35-11](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/50d7c595-5ad2-49e4-a98a-ae1223eceb94)
 
 Verify the entire setup 
-sudo vgdisplay -v #view complete setup - VG, PV, and LV
-sudo lsblk
+     sudo vgdisplay -v #view complete setup - VG, PV, and LV
+     sudo lsblk
 ![Screenshot from 2023-11-23 00-39-17](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/b07062a8-5911-4dda-9bbb-2167ef38f041)
 
 Use mkfs.ext4 to format the logical volumes with ext4 filesystem 
-sudo mkfs -t ext4 /dev/webdata-vg/db-lv
-sudo mkfs -t ext4 /dev/webdata-vg/logs-lv
+     sudo mkfs -t ext4 /dev/webdata-vg/db-lv
+     sudo mkfs -t ext4 /dev/webdata-vg/logs-lv
 ![Screenshot from 2023-11-23 00-42-18](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/36a77227-0222-4c62-97dc-0a06f079e371)
 
 Create /db directory to store database files
-  sudo mkdir -p /db
+     sudo mkdir -p /db
 
 Create /home/recovery/logs to store backup of log data
-sudo mkdir -p /home/recovery/logs
+     sudo mkdir -p /home/recovery/logs
 ![Screenshot from 2023-11-23 00-53-29](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/2c254e4b-add8-445e-a923-69899d8fd6b7)
 
-    2. Install wget, Apache and it's dependencies
+Mount /db on apps-lv logical volume
+     sudo mount /dev/webdata-vg/db-lv /db/
+![Screenshot from 2023-11-23 20-47-24](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/beb83014-4e49-4ba4-8e8f-6bd8c67e15ba)
+
+## Step 3 — Install Wordpress on your Web Server EC2
+    1. Update the repository
+       sudo yum -y update
+![Screenshot from 2023-11-23 21-04-13](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/9694ef63-0f15-470f-a7c6-e83125b1f888)
+
+   2. Install wget, Apache and it's dependencies
        sudo yum -y install wget httpd php php-mysqlnd php-fpm php-json
-    3. Start Apache
+![Screenshot from 2023-11-23 21-06-04](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/36569d7a-ea5e-4b84-929e-cf059edcc292)
+
+   3. Start Apache
+      sudo systemctl enable httpd
+      sudo systemctl start httpd
+![Screenshot from 2023-11-23 21-09-37](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/f0324eba-dc6e-42a4-9d35-96b5ed571a1d)
+
+## To install PHP and it's depemdencies
+   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+![Screenshot from 2023-11-23 21-12-22](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/0dcd2dac-cdac-4b19-80f3-692e663391ed)
+      
+   sudo yum install yum-utils http://rpms.remirepo.net/enterprise/remi-release-8.rpm
+![Screenshot from 2023-11-23 21-12-22](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/4f8b8326-3d48-42d5-83d0-02e54ad43868)
+
+   sudo yum module list php
+   sudo yum module reset php
+![Screenshot from 2023-11-23 21-20-17](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/cec2f018-82ca-44c6-9f4d-19ca4a5cadfa)
+
+   sudo yum module enable php:remi-7.4
+![Screenshot from 2023-11-23 21-25-54](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/ab0759a2-c2a0-4a1e-92a8-ba8a9ce47a9c)
+
+   sudo yum install php php-opcache php-gd php-curl php-mysqlnd
+![Screenshot from 2023-11-23 21-26-31](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/dc44c5c8-e6a6-436f-9632-4ccd0ce164d1)
+
+   sudo systemctl start php-fpm
+   sudo systemctl enable php-fpm
+   setsebool -P httpd_execmem 1
+![Screenshot from 2023-11-23 21-29-50](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/592d4d5b-ac3f-49a5-abb4-414d894d3ba6)
+
+## Restart Apache
+   sudo systemctl restart httpd
+![Screenshot from 2023-11-23 22-10-23](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/4c4fbfbd-8bdb-4d8e-a340-e45124a9a76e)
+
+### Download wordpress and copy wordpress to var/www/html
+   mkdir wordpress
+   cd wordpress
+   sudo wget http://wordpress.org/latest.tar.gz
+![Screenshot from 2023-11-23 22-13-34](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/a0489c97-4976-4ab1-a05b-3d71462d384f)
+
+   sudo tar xzvf latest.tar.gz
+![Screenshot from 2023-11-23 22-14-39](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/3819bae7-fc89-48fe-a66c-caa69956a534)
+
+   sudo rm -rf latest.tar.gz
+   cp wordpress/wp-config-sample.php wordpress/wp-config.php
+   cp -R wordpress /var/www/html/
+![Screenshot from 2023-11-23 22-17-37](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/70cc0b41-0b5f-4002-8361-87ec779def90)
+
+## Configure SELinux Policies
+   sudo chown -R apache:apache /var/www/html/wordpress
+   sudo chcon -t httpd_sys_rw_content_t /var/www/html/wordpress -R
+   sudo setsebool -P httpd_can_network_connect=1
+![Screenshot from 2023-11-23 22-20-36](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/cb9c3d6a-59d1-457f-8ca3-b366ee46b099)
+
+## Step 4 — Install MySQL on your DB Server EC2
+   sudo yum update
+![Screenshot from 2023-11-23 22-25-29](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/568c6066-eb45-45e4-b0de-5b67f58fae96)
+
+   sudo yum install mysql-server
+![Screenshot from 2023-11-23 22-31-51](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/007ccaf5-c615-408a-b52e-a972be3a4e67)
+
+### Verify that the service is up and running by using sudo systemctl status mysqld, if it is not running, restart the service and enable it so it will be running even after reboot:
+   sudo systemctl restart mysqld
+   sudo systemctl enable mysqld
+![Screenshot from 2023-11-23 22-35-22](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/5123de40-ee1b-4350-bb14-ef87d6ef1f69)
+
+## Step 5 — Configure DB to work with WordPress
+   sudo mysql
+CREATE DATABASE wordpress;
+CREATE USER `myuser`@`<Web-Server-Private-IP-Address>` IDENTIFIED BY 'mypass';
+GRANT ALL ON wordpress.* TO 'myuser'@'<Web-Server-Private-IP-Address>';
+FLUSH PRIVILEGES;
+SHOW DATABASES;
+exit
+![Screenshot from 2023-11-23 22-38-30](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/d73c5c2a-f0fa-468e-ac24-89583c1186d8)
+
+## Step 6 — Configure WordPress to connect to remote database.
+Opening MySQL port 3306 on DB Server EC2. For extra security.
+![Screenshot from 2023-11-23 23-44-23](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/38455ab5-3d0a-4ce4-9017-27373228f8f3)
+
+## Install MySQL client and test that you can connect from your Web Server to your DB server by using mysql-client 
+   sudo yum install mysql
+![Screenshot from 2023-11-23 23-48-18](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/498dbbd4-b20b-41ec-80fb-e4a6c30cc4ca)
+
+sudo mysql -u admin -p -h <DB-Server-Private-IP-address>
+    2. Verify if you can successfully execute SHOW DATABASES; command and see a list of existing databases.
+    3. Change permissions and configuration so Apache could use WordPress:
+    4. Enable TCP port 80 in Inbound Rules configuration for your Web Server EC2 (enable from everywhere 0.0.0.0/0 or from your workstation's IP)
+    5. Try to access from your browser the link to your WordPress http://<Web-Server-Public-IP-Address>/wordpress/
+
