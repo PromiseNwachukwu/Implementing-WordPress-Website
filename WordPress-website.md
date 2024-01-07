@@ -162,7 +162,7 @@ Mount /db on apps-lv logical volume
       sudo systemctl start httpd
 ![Screenshot from 2023-11-23 21-09-37](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/f0324eba-dc6e-42a4-9d35-96b5ed571a1d)
 
-## To install PHP and it's depemdencies
+  4. To install PHP and it's depemdencies
    sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
 ![Screenshot from 2023-11-23 21-12-22](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/0dcd2dac-cdac-4b19-80f3-692e663391ed)
       
@@ -184,11 +184,11 @@ Mount /db on apps-lv logical volume
    setsebool -P httpd_execmem 1
 ![Screenshot from 2023-11-23 21-29-50](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/592d4d5b-ac3f-49a5-abb4-414d894d3ba6)
 
-## Restart Apache
+ 5. Restart Apache
    sudo systemctl restart httpd
 ![Screenshot from 2023-11-23 22-10-23](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/4c4fbfbd-8bdb-4d8e-a340-e45124a9a76e)
 
-### Download wordpress and copy wordpress to var/www/html
+ 6. Download wordpress and copy wordpress to var/www/html
    mkdir wordpress
    cd wordpress
    sudo wget http://wordpress.org/latest.tar.gz
@@ -202,7 +202,7 @@ Mount /db on apps-lv logical volume
    cp -R wordpress /var/www/html/
 ![Screenshot from 2023-11-23 22-17-37](https://github.com/PromiseNwachukwu/Implementing-WordPress-Website/assets/109115304/70cc0b41-0b5f-4002-8361-87ec779def90)
 
-## Configure SELinux Policies
+ 7. Configure SELinux Policies
    sudo chown -R apache:apache /var/www/html/wordpress
    sudo chcon -t httpd_sys_rw_content_t /var/www/html/wordpress -R
    sudo setsebool -P httpd_can_network_connect=1
